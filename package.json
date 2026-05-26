@@ -1,7 +1,7 @@
 {
-  "name": "selection-format-preview",
-  "displayName": "Format Preview",
-  "description": "Paste text into a bottom panel and preview formatted JSON or escaped newline Markdown.",
+  "name": "clipboard-format-preview",
+  "displayName": "Clipboard Format Preview",
+  "description": "Open copied text as a collapsible JSON tree or escaped newline preview beside the editor.",
   "version": "0.0.1",
   "publisher": "local",
   "engines": {
@@ -11,25 +11,28 @@
     "Other"
   ],
   "activationEvents": [
-    "onView:selection-format-preview-format-view"
+    "onCommand:selection-format-preview.openBeside"
   ],
   "main": "./out/src/extension.js",
   "contributes": {
-    "viewsContainers": {
-      "panel": [
+    "commands": [
+      {
+        "command": "selection-format-preview.openBeside",
+        "title": "Open Clipboard Format Preview",
+        "icon": "media/preview-format-title.svg"
+      }
+    ],
+    "menus": {
+      "editor/title": [
         {
-          "id": "selection-format-preview-format-container",
-          "title": "PREVIEW FORMAT",
-          "icon": "media/preview-format.svg"
+          "command": "selection-format-preview.openBeside",
+          "group": "navigation@100"
         }
-      ]
-    },
-    "views": {
-      "selection-format-preview-format-container": [
+      ],
+      "commandPalette": [
         {
-          "id": "selection-format-preview-format-view",
-          "name": "PREVIEW FORMAT",
-          "type": "webview"
+          "command": "selection-format-preview.openBeside",
+          "when": "false"
         }
       ]
     }

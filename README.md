@@ -1,6 +1,6 @@
-# Format Preview
+# Clipboard Format Preview
 
-Open the **PREVIEW FORMAT** tab in the bottom panel, then copy text anywhere. The panel automatically shows the formatted result.
+Copy text anywhere, then click **Open Clipboard Format Preview** in the editor title area. The right-side preview updates from the clipboard and renders JSON as an expandable tree.
 
 The extension currently supports two auto-detected formats:
 

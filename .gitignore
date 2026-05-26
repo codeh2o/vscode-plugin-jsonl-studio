@@ -1,4 +1,24 @@
+# Dependencies
 node_modules/
+
+# Build output
 out/
 .vscode-test/
+
+# Packaged extensions
 *.vsix
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+
+# Caches
+.cache/
+.turbo/
+coverage/
