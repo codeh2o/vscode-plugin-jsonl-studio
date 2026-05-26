@@ -2,5 +2,11 @@ node_modules
 src
 test
 .vscode
+.vscode-test
+.gitignore
+.cache
+coverage
 tsconfig.json
-*.map
+*.vsix
+out/test/**
+**/*.map

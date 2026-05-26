@@ -3,7 +3,16 @@
   "displayName": "Clipboard Format Preview",
   "description": "Open copied text as a collapsible JSON tree or escaped newline preview beside the editor.",
   "version": "0.0.1",
-  "publisher": "local",
+  "publisher": "landz",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codeh2o/Clipboard-Format-Preview.git"
+  },
+  "bugs": {
+    "url": "https://github.com/codeh2o/Clipboard-Format-Preview/issues"
+  },
+  "homepage": "https://github.com/codeh2o/Clipboard-Format-Preview#readme",
   "engines": {
     "vscode": "^1.88.0"
   },
