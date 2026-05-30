@@ -1,10 +1,12 @@
-# Clipboard Format Preview
+# JSONL Format Preview
 
-Copy text anywhere, then click **Open Clipboard Format Preview** in the editor title area. The right-side preview updates from the clipboard and renders JSON as an expandable tree.
+Open a `.jsonl` or `.ndjson` file, then click **Open JSONL Format Preview** in the editor title area. The extension opens a side-by-side formatted editor for JSON Lines records.
 
-The extension currently supports two auto-detected formats:
+The preview keeps each JSONL line independent:
 
-- JSON pretty print
-- Markdown/newline preview for escaped `\n` text
+- Empty lines are preserved.
+- Invalid lines are shown with their parse error and are not edited.
+- Strings containing literal `\n` sequences are displayed as real line breaks.
+- Strings containing JSON objects or arrays are recursively parsed for editing, then stringified back into the original field when the source buffer is updated.
 
-The formatter is defensive: malformed JSON, incomplete escapes, and ordinary text fall back to a safe preview instead of throwing.
+Editing a value in the preview updates the original VS Code text buffer and marks the document dirty. The extension does not write directly to disk; normal VS Code save behavior remains in control.

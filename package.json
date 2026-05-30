@@ -1,7 +1,7 @@
 {
   "name": "clipboard-format-preview",
-  "displayName": "Clipboard Format Preview",
-  "description": "Open copied text as a collapsible JSON tree or escaped newline preview beside the editor.",
+  "displayName": "JSONL Format Preview",
+  "description": "Open JSONL and NDJSON files in a side-by-side editable formatted preview.",
   "version": "0.0.1",
   "publisher": "landz",
   "license": "MIT",
@@ -20,36 +20,38 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:selection-format-preview.openBeside"
+    "onCommand:clipboard-format-preview.openJsonlPreview"
   ],
   "main": "./out/src/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "selection-format-preview.openBeside",
-        "title": "Open Clipboard Format Preview",
+        "command": "clipboard-format-preview.openJsonlPreview",
+        "title": "Open JSONL Format Preview",
         "icon": "media/preview-format-title.svg"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "selection-format-preview.openBeside",
+          "command": "clipboard-format-preview.openJsonlPreview",
+          "when": "resourceExtname == .jsonl || resourceExtname == .ndjson",
           "group": "navigation@100"
         }
       ],
       "commandPalette": [
         {
-          "command": "selection-format-preview.openBeside",
+          "command": "clipboard-format-preview.openJsonlPreview",
           "when": "false"
         }
       ]
     }
   },
   "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('out',{recursive:true,force:true})\"",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "test": "npm run compile && node --test out/test/*.test.js"
+    "test": "npm run clean && npm run compile && node --test out/test/*.test.js"
   },
   "devDependencies": {
     "@types/node": "^20.12.7",
