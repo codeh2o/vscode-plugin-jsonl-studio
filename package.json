@@ -7,12 +7,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/codeh2o/jsonl-studio.git"
+    "url": "https://github.com/codeh2o/vscode-plugin-jsonl-studio.git"
   },
   "bugs": {
-    "url": "https://github.com/codeh2o/jsonl-studio/issues"
+    "url": "https://github.com/codeh2o/vscode-plugin-jsonl-studio/issues"
   },
-  "homepage": "https://github.com/codeh2o/jsonl-studio#readme",
+  "homepage": "https://github.com/codeh2o/vscode-plugin-jsonl-studio#readme",
   "icon": "media/icon.png",
   "engines": {
     "vscode": "^1.88.0"
