@@ -1,6 +1,6 @@
-# Better JSONL Preview
+# JSONL Studio
 
-Better JSONL Preview opens `.jsonl` and `.ndjson` files in a side-by-side formatted preview editor. Use the editor title action on a JSONL file to inspect each record as a readable JSON tree while keeping the original text buffer in VS Code.
+JSONL Studio opens `.jsonl` and `.ndjson` files in a side-by-side formatted editor. Use the editor title action on a JSONL file to inspect each record as a readable JSON tree while keeping the original text buffer in VS Code.
 
 ## Features
 
@@ -12,11 +12,12 @@ Better JSONL Preview opens `.jsonl` and `.ndjson` files in a side-by-side format
 - Lets you edit existing string, number, and boolean values from the preview.
 - Writes edits back to the original VS Code text buffer and leaves saving to VS Code.
 - Syncs preview scrolling with the source JSONL editor.
+- Includes an in-preview find widget with case-sensitive, whole-word, and regular-expression modes.
 
 ## Usage
 
 1. Open a `.jsonl` or `.ndjson` file.
-2. Click **Open Better JSONL Preview** in the editor title area.
+2. Click **Open JSONL Studio** in the editor title area.
 3. Single-click a value in the preview to edit it.
 4. Click outside the input to apply the edit, or use Enter for number and boolean edits and Cmd/Ctrl+Enter for string edits. Press Esc to cancel.
 5. Save the file normally in VS Code when you are ready.

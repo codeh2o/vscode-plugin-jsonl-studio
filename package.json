@@ -1,18 +1,18 @@
 {
-  "name": "better-jsonl-preview",
-  "displayName": "Better JSONL Preview",
-  "description": "Preview and safely edit JSONL and NDJSON files in a formatted side-by-side view.",
+  "name": "jsonl-studio",
+  "displayName": "JSONL Studio",
+  "description": "Inspect and safely edit JSONL and NDJSON files in a formatted side-by-side studio.",
   "version": "0.0.1",
   "publisher": "landz",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/codeh2o/Clipboard-Format-Preview.git"
+    "url": "https://github.com/codeh2o/jsonl-studio.git"
   },
   "bugs": {
-    "url": "https://github.com/codeh2o/Clipboard-Format-Preview/issues"
+    "url": "https://github.com/codeh2o/jsonl-studio/issues"
   },
-  "homepage": "https://github.com/codeh2o/Clipboard-Format-Preview#readme",
+  "homepage": "https://github.com/codeh2o/jsonl-studio#readme",
   "icon": "media/icon.png",
   "engines": {
     "vscode": "^1.88.0"
@@ -21,28 +21,28 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:better-jsonl-preview.openJsonlPreview"
+    "onCommand:jsonl-studio.openJsonlPreview"
   ],
   "main": "./out/src/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "better-jsonl-preview.openJsonlPreview",
-        "title": "Open Better JSONL Preview",
+        "command": "jsonl-studio.openJsonlPreview",
+        "title": "Open JSONL Studio",
         "icon": "media/preview-format-title.svg"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "better-jsonl-preview.openJsonlPreview",
+          "command": "jsonl-studio.openJsonlPreview",
           "when": "resourceExtname == .jsonl || resourceExtname == .ndjson",
           "group": "navigation@100"
         }
       ],
       "commandPalette": [
         {
-          "command": "better-jsonl-preview.openJsonlPreview",
+          "command": "jsonl-studio.openJsonlPreview",
           "when": "false"
         }
       ]

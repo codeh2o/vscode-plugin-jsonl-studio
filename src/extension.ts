@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { JsonPath, JsonPrimitive, parseJsonlText, updateJsonlLineValue } from "./jsonlModel";
 
-const COMMAND_OPEN_JSONL_PREVIEW = "better-jsonl-preview.openJsonlPreview";
+const COMMAND_OPEN_JSONL_PREVIEW = "jsonl-studio.openJsonlPreview";
 const JSONL_EXTENSIONS = new Set([".jsonl", ".ndjson"]);
 
 interface JsonlPreviewSession {
@@ -49,7 +49,7 @@ export function deactivate(): void {
 async function openJsonlPreview(extensionUri: vscode.Uri): Promise<void> {
   const editor = vscode.window.activeTextEditor;
   if (!editor || !isJsonlUri(editor.document.uri)) {
-    vscode.window.showWarningMessage("Open a .jsonl or .ndjson file before launching Better JSONL Preview.");
+    vscode.window.showWarningMessage("Open a .jsonl or .ndjson file before launching JSONL Studio.");
     return;
   }
 
@@ -61,9 +61,9 @@ async function openJsonlPreview(extensionUri: vscode.Uri): Promise<void> {
     return;
   }
 
-  const baseTitle = `Better JSONL Preview: ${editor.document.fileName.split(/[\\/]/).pop() ?? "document"}`;
+  const baseTitle = `JSONL Studio: ${editor.document.fileName.split(/[\\/]/).pop() ?? "document"}`;
   const panel = vscode.window.createWebviewPanel(
-    "clipboard-format-preview-jsonl",
+    "jsonl-studio",
     baseTitle,
     vscode.ViewColumn.Beside,
     {
@@ -209,7 +209,7 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
     content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';"
   >
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Better JSONL Preview</title>
+  <title>JSONL Studio</title>
   <style>
     :root {
       color-scheme: light dark;
@@ -892,7 +892,7 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
     function renderFileCrumbs(filePath) {
       const parts = String(filePath || "").split(/[\\\\/]/).filter(Boolean);
       if (parts.length === 0) {
-        return '{} JSONL Preview';
+        return '{} JSONL Studio';
       }
 
       const fileName = parts[parts.length - 1];
