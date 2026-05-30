@@ -1,7 +1,7 @@
 {
-  "name": "clipboard-format-preview",
-  "displayName": "JSONL Format Preview",
-  "description": "Open JSONL and NDJSON files in a side-by-side editable formatted preview.",
+  "name": "better-jsonl-preview",
+  "displayName": "Better JSONL Preview",
+  "description": "Preview and safely edit JSONL and NDJSON files in a formatted side-by-side view.",
   "version": "0.0.1",
   "publisher": "landz",
   "license": "MIT",
@@ -13,6 +13,7 @@
     "url": "https://github.com/codeh2o/Clipboard-Format-Preview/issues"
   },
   "homepage": "https://github.com/codeh2o/Clipboard-Format-Preview#readme",
+  "icon": "media/icon.png",
   "engines": {
     "vscode": "^1.88.0"
   },
@@ -20,28 +21,28 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:clipboard-format-preview.openJsonlPreview"
+    "onCommand:better-jsonl-preview.openJsonlPreview"
   ],
   "main": "./out/src/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "clipboard-format-preview.openJsonlPreview",
-        "title": "Open JSONL Format Preview",
+        "command": "better-jsonl-preview.openJsonlPreview",
+        "title": "Open Better JSONL Preview",
         "icon": "media/preview-format-title.svg"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "clipboard-format-preview.openJsonlPreview",
+          "command": "better-jsonl-preview.openJsonlPreview",
           "when": "resourceExtname == .jsonl || resourceExtname == .ndjson",
           "group": "navigation@100"
         }
       ],
       "commandPalette": [
         {
-          "command": "clipboard-format-preview.openJsonlPreview",
+          "command": "better-jsonl-preview.openJsonlPreview",
           "when": "false"
         }
       ]

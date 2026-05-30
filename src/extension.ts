@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { JsonPath, JsonPrimitive, parseJsonlText, updateJsonlLineValue } from "./jsonlModel";
 
-const COMMAND_OPEN_JSONL_PREVIEW = "clipboard-format-preview.openJsonlPreview";
+const COMMAND_OPEN_JSONL_PREVIEW = "better-jsonl-preview.openJsonlPreview";
 const JSONL_EXTENSIONS = new Set([".jsonl", ".ndjson"]);
 
 interface JsonlPreviewSession {
@@ -49,7 +49,7 @@ export function deactivate(): void {
 async function openJsonlPreview(extensionUri: vscode.Uri): Promise<void> {
   const editor = vscode.window.activeTextEditor;
   if (!editor || !isJsonlUri(editor.document.uri)) {
-    vscode.window.showWarningMessage("Open a .jsonl or .ndjson file before launching JSONL Format Preview.");
+    vscode.window.showWarningMessage("Open a .jsonl or .ndjson file before launching Better JSONL Preview.");
     return;
   }
 
@@ -61,7 +61,7 @@ async function openJsonlPreview(extensionUri: vscode.Uri): Promise<void> {
     return;
   }
 
-  const baseTitle = `JSONL Preview: ${editor.document.fileName.split(/[\\/]/).pop() ?? "document"}`;
+  const baseTitle = `Better JSONL Preview: ${editor.document.fileName.split(/[\\/]/).pop() ?? "document"}`;
   const panel = vscode.window.createWebviewPanel(
     "clipboard-format-preview-jsonl",
     baseTitle,
@@ -209,7 +209,7 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
     content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';"
   >
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JSONL Format Preview</title>
+  <title>Better JSONL Preview</title>
   <style>
     :root {
       color-scheme: light dark;
@@ -259,6 +259,7 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
       height: 100%;
       min-width: 0;
       min-height: 0;
+      position: relative;
     }
 
     .editor-scroll {
@@ -344,6 +345,83 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
       font-size: 12px;
     }
 
+    .find-widget {
+      position: fixed;
+      top: 6px;
+      right: 16px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-height: 34px;
+      max-width: calc(100vw - 32px);
+      padding: 3px 6px;
+      color: var(--vscode-input-foreground);
+      background: var(--vscode-editorWidget-background, var(--jfp-bg));
+      border: 1px solid var(--vscode-widget-border, var(--jfp-border));
+      border-radius: 9px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
+      font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+    }
+
+    .find-widget.hidden {
+      display: none;
+    }
+
+    .find-input {
+      width: min(330px, 36vw);
+      height: 26px;
+      padding: 2px 9px;
+      color: var(--vscode-input-foreground);
+      background: var(--vscode-input-background);
+      border: 1px solid transparent;
+      border-radius: 6px;
+      outline: none;
+    }
+
+    .find-input:focus {
+      border-color: var(--vscode-focusBorder);
+    }
+
+    .find-button {
+      width: 28px;
+      height: 26px;
+      padding: 0;
+      color: var(--vscode-icon-foreground, var(--jfp-muted));
+      background: transparent;
+      border: 0;
+      border-radius: 4px;
+      outline: none;
+      line-height: 1;
+    }
+
+    .find-button:hover,
+    .find-button.active {
+      background: var(--vscode-toolbar-hoverBackground);
+    }
+
+    .find-button:disabled {
+      opacity: .38;
+    }
+
+    .find-button:focus-visible {
+      outline: 1px solid var(--vscode-focusBorder);
+      outline-offset: -1px;
+    }
+
+    .find-status {
+      min-width: 76px;
+      padding: 0 6px;
+      color: var(--jfp-muted);
+      white-space: nowrap;
+    }
+
+    .find-status.error,
+    .find-status.empty {
+      color: var(--jfp-error);
+    }
+
     .code-grid {
       display: grid;
       grid-template-columns: max-content max-content;
@@ -367,6 +445,18 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
     .code-line {
       min-height: var(--vscode-editor-line-height, 20px);
       white-space: pre;
+    }
+
+    .gutter-cell.find-match-line,
+    .code-line.find-match-line {
+      background: var(--vscode-editor-findMatchHighlightBackground);
+    }
+
+    .gutter-cell.find-current-line,
+    .code-line.find-current-line {
+      background: var(--vscode-editor-findMatchBackground);
+      outline: 1px solid var(--vscode-editor-findMatchBorder, transparent);
+      outline-offset: -1px;
     }
 
     .load-sentinel {
@@ -489,12 +579,26 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
       <div id="code-root"></div>
     </section>
   </main>
+  <div id="find-widget" class="find-widget hidden" role="search">
+    <button class="find-button" type="button" data-find-action="collapse" title="Find">›</button>
+    <input id="find-input" class="find-input" type="text" spellcheck="false" autocomplete="off" aria-label="Find">
+    <button class="find-button" type="button" data-find-toggle="caseSensitive" title="Match Case">Aa</button>
+    <button class="find-button" type="button" data-find-toggle="wholeWord" title="Match Whole Word">ab</button>
+    <button class="find-button" type="button" data-find-toggle="regex" title="Use Regular Expression">.*</button>
+    <span id="find-status" class="find-status" aria-live="polite"></span>
+    <button class="find-button" type="button" data-find-action="previous" title="Previous Match">↑</button>
+    <button class="find-button" type="button" data-find-action="next" title="Next Match">↓</button>
+    <button class="find-button" type="button" data-find-action="close" title="Close">×</button>
+  </div>
 
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
     const headerRoot = document.getElementById("header");
     const scrollRoot = document.getElementById("editor-scroll");
     const codeRoot = document.getElementById("code-root");
+    const findRoot = document.getElementById("find-widget");
+    const findInput = document.getElementById("find-input");
+    const findStatus = document.getElementById("find-status");
     const PAGE_SIZE = 30;
 
     let state = {
@@ -509,7 +613,19 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
       pendingEditTarget: undefined,
       pendingScrollLineIndex: undefined,
       scrollAnimationFrame: 0,
-      collapsedPaths: new Set()
+      collapsedPaths: new Set(),
+      find: {
+        open: false,
+        query: "",
+        caseSensitive: false,
+        wholeWord: false,
+        regex: false,
+        matches: [],
+        matchLineIndexes: new Set(),
+        currentIndex: -1,
+        error: "",
+        debounceTimer: 0
+      }
     };
 
     window.addEventListener("message", (event) => {
@@ -537,6 +653,9 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
         }
         if (Number.isInteger(state.pendingScrollLineIndex)) {
           scheduleScrollToLine(state.pendingScrollLineIndex);
+        }
+        if (state.find.open && state.find.query) {
+          updateFindMatches(false);
         }
         return;
       }
@@ -575,7 +694,82 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
       commitActiveEditFromOutsidePointer(event);
     }, true);
 
-    scrollRoot.addEventListener("dblclick", (event) => {
+    document.addEventListener("keydown", (event) => {
+      handleGlobalKeydown(event);
+    }, true);
+
+    findRoot.addEventListener("input", (event) => {
+      if (event.target !== findInput) {
+        return;
+      }
+      state.find.query = findInput.value;
+      scheduleFindUpdate();
+      renderFindWidget();
+    });
+
+    findRoot.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!target || typeof target.closest !== "function") {
+        return;
+      }
+
+      const toggle = target.closest("[data-find-toggle]");
+      if (toggle) {
+        const key = toggle.getAttribute("data-find-toggle");
+        state.find[key] = !state.find[key];
+        updateFindMatches(true);
+        focusFindInput();
+        return;
+      }
+
+      const action = target.closest("[data-find-action]");
+      if (!action) {
+        return;
+      }
+
+      const name = action.getAttribute("data-find-action");
+      if (name === "close") {
+        closeFindWidget();
+        return;
+      }
+
+      if (name === "next") {
+        navigateFind(1);
+        return;
+      }
+
+      if (name === "previous") {
+        navigateFind(-1);
+        return;
+      }
+
+      focusFindInput();
+    });
+
+    scrollRoot.addEventListener("click", (event) => {
+      const activeEditor = codeRoot.querySelector(".edit-input[data-edit-path], .edit-select[data-edit-path]");
+      if (activeEditor) {
+        const target = event.target;
+        if (!target || typeof target.closest !== "function" || !target.closest(".edit-input, .edit-select")) {
+          return;
+        }
+      }
+
+      const toggle = event.target.closest("[data-toggle-path]");
+      if (toggle) {
+        const key = toggle.getAttribute("data-toggle-path");
+        if (state.collapsedPaths.has(key)) {
+          state.collapsedPaths.delete(key);
+        } else {
+          state.collapsedPaths.add(key);
+        }
+        renderEditor();
+        if (state.find.open && state.find.query) {
+          updateFindMatches(false);
+        }
+        return;
+      }
+
       const value = event.target.closest("[data-edit-path]");
       if (!value || value.classList.contains("edit-input") || value.classList.contains("edit-select")) {
         return;
@@ -585,29 +779,6 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
         return;
       }
       beginEdit(value);
-    });
-
-    scrollRoot.addEventListener("click", (event) => {
-      const toggle = event.target.closest("[data-toggle-path]");
-      if (!toggle) {
-        return;
-      }
-
-      const key = toggle.getAttribute("data-toggle-path");
-      if (state.collapsedPaths.has(key)) {
-        state.collapsedPaths.delete(key);
-      } else {
-        state.collapsedPaths.add(key);
-      }
-      renderEditor();
-    });
-
-    scrollRoot.addEventListener("change", (event) => {
-      const input = event.target.closest("[data-edit-path]");
-      if (!input || input.getAttribute("data-kind") !== "boolean") {
-        return;
-      }
-      sendEdit(input);
     });
 
     scrollRoot.addEventListener("input", (event) => {
@@ -649,6 +820,7 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
     function render() {
       renderHeader();
       renderEditor();
+      renderFindWidget();
     }
 
     function renderEditor() {
@@ -658,13 +830,28 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
         return;
       }
 
-      const lines = rows.flatMap((row) => buildJsonlItemLines(row));
+      const lines = buildCodeLines(rows);
       const body = lines.map((line) => renderCodeGridLine(line)).join("");
       const sentinel = state.visibleCount < state.rows.length
         ? '<div class="gutter-cell"></div><div class="code-line load-sentinel">Loading more rows...</div>'
         : "";
 
       codeRoot.innerHTML = '<div class="code-grid">' + body + sentinel + '</div>';
+    }
+
+    function buildCodeLines(rows) {
+      const lines = [];
+      for (const row of rows) {
+        for (const line of buildJsonlItemLines(row)) {
+          lines.push({
+            ...line,
+            lineIndex: row.lineIndex,
+            visualLineIndex: lines.length,
+            text: htmlToText(line.html)
+          });
+        }
+      }
+      return lines;
     }
 
     function buildJsonlItemLines(row) {
@@ -713,6 +900,41 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
       return (parent ? escapeHtml(parent) + ' <span class="meta">&gt;</span> ' : "") +
         '<span class="punct">{}</span> ' +
         escapeHtml(fileName);
+    }
+
+    function renderFindWidget() {
+      findRoot.classList.toggle("hidden", !state.find.open);
+      if (!state.find.open) {
+        return;
+      }
+
+      if (findInput.value !== state.find.query) {
+        findInput.value = state.find.query;
+      }
+
+      for (const button of findRoot.querySelectorAll("[data-find-toggle]")) {
+        const key = button.getAttribute("data-find-toggle");
+        const active = Boolean(state.find[key]);
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", active ? "true" : "false");
+      }
+
+      const hasMatches = state.find.matches.length > 0 && !state.find.error;
+      for (const button of findRoot.querySelectorAll('[data-find-action="next"], [data-find-action="previous"]')) {
+        button.disabled = !hasMatches;
+      }
+
+      findStatus.classList.toggle("error", Boolean(state.find.error));
+      findStatus.classList.toggle("empty", Boolean(state.find.query && !state.find.error && state.find.matches.length === 0));
+      if (state.find.error) {
+        findStatus.textContent = "Invalid regex";
+      } else if (!state.find.query) {
+        findStatus.textContent = "";
+      } else if (state.find.matches.length === 0) {
+        findStatus.textContent = "No results";
+      } else {
+        findStatus.textContent = (state.find.currentIndex + 1) + " of " + state.find.matches.length;
+      }
     }
 
     function visibleRows() {
@@ -857,17 +1079,17 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
     function renderPrimitiveEditor(value, encodedPath, lineIndex) {
       if (typeof value === "string") {
         const rows = Math.max(1, value.split("\\n").length);
-        return '<textarea class="edit-input string" rows="' + rows + '" wrap="off" data-kind="string" data-line-index="' + lineIndex + '" data-edit-path="' + encodedPath + '">' +
+        return '<textarea class="edit-input string" rows="' + rows + '" wrap="off" data-kind="string" data-original-value="' + escapeHtml(JSON.stringify(value)) + '" data-line-index="' + lineIndex + '" data-edit-path="' + encodedPath + '">' +
           escapeHtml(value) +
           '</textarea>';
       }
 
       if (typeof value === "number") {
-        return '<input class="edit-input number" data-kind="number" data-line-index="' + lineIndex + '" data-edit-path="' + encodedPath + '" value="' + escapeHtml(String(value)) + '">';
+        return '<input class="edit-input number" data-kind="number" data-original-value="' + escapeHtml(JSON.stringify(value)) + '" data-line-index="' + lineIndex + '" data-edit-path="' + encodedPath + '" value="' + escapeHtml(String(value)) + '">';
       }
 
       if (typeof value === "boolean") {
-        return '<select class="edit-select boolean" data-kind="boolean" data-line-index="' + lineIndex + '" data-edit-path="' + encodedPath + '">' +
+        return '<select class="edit-select boolean" data-kind="boolean" data-original-value="' + escapeHtml(JSON.stringify(value)) + '" data-line-index="' + lineIndex + '" data-edit-path="' + encodedPath + '">' +
           '<option value="true"' + (value ? " selected" : "") + '>true</option>' +
           '<option value="false"' + (!value ? " selected" : "") + '>false</option>' +
           '</select>';
@@ -891,8 +1113,25 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
       const anchor = Number.isInteger(line.sourceLineIndex)
         ? ' data-jsonl-line-index="' + line.sourceLineIndex + '"'
         : "";
-      return '<div class="gutter-cell"' + anchor + '><span class="line-number">' + line.lineNumber + '</span></div>' +
-        '<div class="code-line"' + anchor + '>' + line.html + '</div>';
+      const visualAnchor = Number.isInteger(line.visualLineIndex)
+        ? ' data-visual-line-index="' + line.visualLineIndex + '"'
+        : "";
+      const findClass = findLineClass(line.visualLineIndex);
+      return '<div class="gutter-cell' + findClass + '"' + anchor + visualAnchor + '><span class="line-number">' + line.lineNumber + '</span></div>' +
+        '<div class="code-line' + findClass + '"' + anchor + visualAnchor + '>' + line.html + '</div>';
+    }
+
+    function findLineClass(visualLineIndex) {
+      if (!state.find.open || !state.find.query || state.find.error || !Number.isInteger(visualLineIndex)) {
+        return "";
+      }
+
+      const current = state.find.matches[state.find.currentIndex];
+      if (current && current.visualLineIndex === visualLineIndex) {
+        return " find-current-line";
+      }
+
+      return state.find.matchLineIndexes.has(visualLineIndex) ? " find-match-line" : "";
     }
 
     function pathStateKey(lineIndex, path) {
@@ -935,6 +1174,271 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
       }
 
       scrollRoot.scrollTop = target.offsetTop;
+    }
+
+    function handleGlobalKeydown(event) {
+      const key = String(event.key || "").toLowerCase();
+      if ((event.metaKey || event.ctrlKey) && key === "f") {
+        event.preventDefault();
+        event.stopPropagation();
+        openFindWidget();
+        return;
+      }
+
+      if (!state.find.open) {
+        return;
+      }
+
+      const target = event.target;
+      const inFindWidget = target && typeof target.closest === "function" && target.closest(".find-widget");
+      if (!inFindWidget) {
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        closeFindWidget();
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        event.stopPropagation();
+        navigateFind(event.shiftKey ? -1 : 1);
+      }
+    }
+
+    function openFindWidget() {
+      state.find.open = true;
+      renderFindWidget();
+      focusFindInput(true);
+      if (state.find.query) {
+        updateFindMatches(false);
+      }
+    }
+
+    function closeFindWidget() {
+      state.find.open = false;
+      state.find.error = "";
+      state.find.matches = [];
+      state.find.matchLineIndexes = new Set();
+      state.find.currentIndex = -1;
+      if (state.find.debounceTimer) {
+        clearTimeout(state.find.debounceTimer);
+        state.find.debounceTimer = 0;
+      }
+      renderFindWidget();
+      renderEditorPreservingActiveEdit();
+    }
+
+    function focusFindInput(selectText) {
+      findInput.focus();
+      if (selectText) {
+        findInput.select();
+      }
+    }
+
+    function scheduleFindUpdate() {
+      if (state.find.debounceTimer) {
+        clearTimeout(state.find.debounceTimer);
+      }
+      state.find.debounceTimer = setTimeout(() => {
+        state.find.debounceTimer = 0;
+        updateFindMatches(true);
+      }, 120);
+    }
+
+    function updateFindMatches(resetCurrent) {
+      const query = state.find.query;
+      state.find.error = "";
+      state.find.matches = [];
+      state.find.matchLineIndexes = new Set();
+
+      if (!query) {
+        state.find.currentIndex = -1;
+        renderFindWidget();
+        renderEditorPreservingActiveEdit();
+        return;
+      }
+
+      const matcher = createFindMatcher(query);
+      if (!matcher.ok) {
+        state.find.error = matcher.error;
+        state.find.currentIndex = -1;
+        renderFindWidget();
+        renderEditorPreservingActiveEdit();
+        return;
+      }
+
+      const lines = buildCodeLines(state.rows);
+      const matches = [];
+      for (const line of lines) {
+        if (matcher.matches(line.text)) {
+          matches.push({
+            visualLineIndex: line.visualLineIndex,
+            lineIndex: line.lineIndex
+          });
+        }
+      }
+
+      state.find.matches = matches;
+      state.find.matchLineIndexes = new Set(matches.map((match) => match.visualLineIndex));
+      if (matches.length === 0) {
+        state.find.currentIndex = -1;
+        renderFindWidget();
+        renderEditorPreservingActiveEdit();
+        return;
+      }
+
+      if (resetCurrent || state.find.currentIndex < 0 || state.find.currentIndex >= matches.length) {
+        state.find.currentIndex = 0;
+      }
+
+      revealFindMatch();
+    }
+
+    function createFindMatcher(query) {
+      if (state.find.regex) {
+        try {
+          const flags = "g" + (state.find.caseSensitive ? "" : "i") + "u";
+          const expression = new RegExp(query, flags);
+          return {
+            ok: true,
+            matches(text) {
+              expression.lastIndex = 0;
+              let match;
+              while ((match = expression.exec(text)) !== null) {
+                const value = match[0] || "";
+                if (!state.find.wholeWord || isWholeWordMatch(text, match.index, value.length)) {
+                  return true;
+                }
+                if (value.length === 0) {
+                  expression.lastIndex += 1;
+                }
+              }
+              return false;
+            }
+          };
+        } catch {
+          return { ok: false, error: "Invalid regex" };
+        }
+      }
+
+      const needle = state.find.caseSensitive ? query : query.toLowerCase();
+      return {
+        ok: true,
+        matches(text) {
+          const haystack = state.find.caseSensitive ? text : text.toLowerCase();
+          let index = haystack.indexOf(needle);
+          while (index >= 0) {
+            if (!state.find.wholeWord || isWholeWordMatch(text, index, query.length)) {
+              return true;
+            }
+            index = haystack.indexOf(needle, index + Math.max(needle.length, 1));
+          }
+          return false;
+        }
+      };
+    }
+
+    function isWholeWordMatch(text, start, length) {
+      if (length <= 0) {
+        return false;
+      }
+      const before = start > 0 ? text[start - 1] : "";
+      const after = start + length < text.length ? text[start + length] : "";
+      return !isWordCharacter(before) && !isWordCharacter(after);
+    }
+
+    function isWordCharacter(char) {
+      return /^[A-Za-z0-9_]$/.test(char || "");
+    }
+
+    function navigateFind(direction) {
+      if (!state.find.query) {
+        focusFindInput();
+        return;
+      }
+
+      if (state.find.matches.length === 0 || state.find.error) {
+        updateFindMatches(true);
+        focusFindInput();
+        return;
+      }
+
+      const length = state.find.matches.length;
+      state.find.currentIndex = (state.find.currentIndex + direction + length) % length;
+      revealFindMatch();
+      focusFindInput();
+    }
+
+    function revealFindMatch() {
+      const match = state.find.matches[state.find.currentIndex];
+      if (!match) {
+        renderFindWidget();
+        renderEditorPreservingActiveEdit();
+        return;
+      }
+
+      if (match.lineIndex >= state.visibleCount) {
+        state.visibleCount = Math.min(Math.max(PAGE_SIZE, match.lineIndex + 1), state.rows.length);
+      }
+
+      renderEditorPreservingActiveEdit();
+      renderFindWidget();
+      requestAnimationFrame(() => {
+        const target = codeRoot.querySelector('[data-visual-line-index="' + match.visualLineIndex + '"].code-line');
+        if (!target) {
+          return;
+        }
+        const margin = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--vscode-editor-line-height")) || 20;
+        scrollRoot.scrollTop = Math.max(0, target.offsetTop - margin);
+      });
+    }
+
+    function renderEditorPreservingActiveEdit() {
+      const snapshot = captureActiveEditor();
+      renderEditor();
+      restoreActiveEditor(snapshot);
+    }
+
+    function captureActiveEditor() {
+      const editor = codeRoot.querySelector(".edit-input[data-edit-path], .edit-select[data-edit-path]");
+      if (!editor) {
+        return undefined;
+      }
+
+      return {
+        editPath: editor.getAttribute("data-edit-path"),
+        value: editor.value,
+        focused: document.activeElement === editor,
+        selectionStart: typeof editor.selectionStart === "number" ? editor.selectionStart : undefined,
+        selectionEnd: typeof editor.selectionEnd === "number" ? editor.selectionEnd : undefined
+      };
+    }
+
+    function restoreActiveEditor(snapshot) {
+      if (!snapshot || !snapshot.editPath) {
+        return;
+      }
+
+      const editor = codeRoot.querySelector('[data-edit-path="' + snapshot.editPath + '"]');
+      if (!editor || (!editor.classList.contains("edit-input") && !editor.classList.contains("edit-select"))) {
+        return;
+      }
+
+      editor.value = snapshot.value;
+      if (editor.tagName === "TEXTAREA") {
+        resizeTextareaToContent(editor);
+      }
+
+      if (snapshot.focused) {
+        editor.focus();
+        if (typeof snapshot.selectionStart === "number" && typeof snapshot.selectionEnd === "number" && editor.setSelectionRange) {
+          editor.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd);
+        }
+      }
     }
 
     function pruneCollapsedPaths() {
@@ -999,15 +1503,58 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
       }
 
       const target = event.target;
+      if (target && typeof target.closest === "function" && target.closest(".find-widget")) {
+        return;
+      }
+
       if (target && typeof target.closest === "function" && target.closest(".edit-input, .edit-select")) {
         return;
       }
 
+      if (isPointerOnScrollbar(scrollRoot, event)) {
+        return;
+      }
+
+      const editTarget = target && typeof target.closest === "function"
+        ? target.closest("[data-edit-path]")
+        : undefined;
+
+      if (
+        editTarget &&
+        !editTarget.classList.contains("edit-input") &&
+        !editTarget.classList.contains("edit-select")
+      ) {
+        state.pendingEditTarget = getEditTarget(editTarget);
+      } else {
+        state.pendingEditTarget = undefined;
+      }
+
       const submitted = sendEdit(activeInput);
       if (!submitted) {
+        state.pendingEditTarget = undefined;
         event.preventDefault();
         event.stopPropagation();
       }
+    }
+
+    function isPointerOnScrollbar(element, event) {
+      const rect = element.getBoundingClientRect();
+      const verticalScrollbarWidth = element.offsetWidth - element.clientWidth;
+      const horizontalScrollbarHeight = element.offsetHeight - element.clientHeight;
+      const hasVerticalScrollbar = verticalScrollbarWidth > 0 && element.scrollHeight > element.clientHeight;
+      const hasHorizontalScrollbar = horizontalScrollbarHeight > 0 && element.scrollWidth > element.clientWidth;
+      const x = event.clientX;
+      const y = event.clientY;
+
+      if (hasVerticalScrollbar && x >= rect.right - verticalScrollbarWidth && x <= rect.right) {
+        return true;
+      }
+
+      if (hasHorizontalScrollbar && y >= rect.bottom - horizontalScrollbarHeight && y <= rect.bottom) {
+        return true;
+      }
+
+      return false;
     }
 
     function cancelEdit() {
@@ -1033,6 +1580,20 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
         return false;
       }
 
+      if (isUnchangedEdit(input, parsed.value)) {
+        const pendingEditTarget = state.pendingEditTarget;
+        state.submittingEdit = false;
+        state.submittedEditing = undefined;
+        state.pendingEditTarget = undefined;
+        state.editing = undefined;
+        state.toast = "";
+        renderEditor();
+        if (pendingEditTarget) {
+          beginEditTarget(pendingEditTarget);
+        }
+        return true;
+      }
+
       const submittedEditing = {
         lineIndex: Number(input.getAttribute("data-line-index")),
         pathKey: decodeURIComponent(input.getAttribute("data-edit-path")),
@@ -1050,6 +1611,19 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
         value: parsed.value
       });
       return true;
+    }
+
+    function isUnchangedEdit(input, nextValue) {
+      const originalValueText = input.getAttribute("data-original-value");
+      if (originalValueText === null) {
+        return false;
+      }
+
+      try {
+        return JSON.stringify(nextValue) === JSON.stringify(JSON.parse(originalValueText));
+      } catch {
+        return false;
+      }
     }
 
     function readInputValue(input) {
@@ -1091,6 +1665,12 @@ function renderJsonlPreviewHtml(webview: vscode.Webview): string {
       textarea.style.height = baseHeight + "px";
       const scrollbarHeight = textarea.scrollWidth > textarea.clientWidth + 1 ? 14 : 0;
       textarea.style.height = (baseHeight + scrollbarHeight) + "px";
+    }
+
+    function htmlToText(html) {
+      const template = document.createElement("template");
+      template.innerHTML = html;
+      return template.content.textContent || "";
     }
 
     function escapeHtml(text) {
