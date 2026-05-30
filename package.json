@@ -2,7 +2,7 @@
   "name": "jsonl-studio",
   "displayName": "JSONL Studio",
   "description": "Inspect and safely edit JSONL and NDJSON files in a formatted side-by-side studio.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "landz",
   "license": "MIT",
   "repository": {
